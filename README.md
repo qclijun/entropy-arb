@@ -92,16 +92,19 @@ python3 main.py --record-only --symbol SNDK --hedge lighter-rh
 ```
 
 Let it run for at least a few hours (a day is better — premiums have
-intraday regimes). It writes `logs/minutes.csv`.
+intraday regimes). With `--hedge lighter-rh`, it writes
+`logs/minutes-lighter-rh.csv`.
 
 **2. Analyze and set your thresholds:**
 
 ```bash
-python3 tools/analyze.py
+python3 tools/analyze.py --csv logs/minutes-lighter-rh.csv
 ```
 
 It prints the premium distribution, how often each candidate band would have
 fired, and a ready-to-paste `thresholds:` block for `config.yaml`.
+Always pass the CSV for the same `--hedge` you collected; use
+`--fees-bps 1.0` when analyzing `tradexyz` data.
 
 **3. Go live** — fill in `.env`, install the signing SDKs, and start with
 the smallest position caps that clear the venue minimums:
@@ -145,6 +148,12 @@ suggestions translate directly into config values. `--hours 24` restricts to
 recent data; premiums drift, so re-run it regularly and update
 `config.yaml`.
 
+Each hedge writes to its own CSV by default: `logs/minutes-lighter.csv`,
+`logs/minutes-lighter-rh.csv`, or `logs/minutes-tradexyz.csv`. Do not mix
+them: their quote assets, fees, and premium regimes differ. Analyze the file
+for the hedge you traded, for example `python3 tools/analyze.py --csv
+logs/minutes-lighter.csv`.
+
 ## Configuration
 
 Strategy lives in `config.yaml` (validated — unknown keys are startup
@@ -165,7 +174,7 @@ errors), credentials in `.env`, and the markets on the command line
 | `inventory.scale_bps` / `floor_frac` | inventory ladder (extra bps past `floor_frac` of the cap) | 10 / 0.5 |
 | `execution.premium_persist_sec` | edge must persist before firing | 0.3 |
 | `execution.*` | slippage bounds, timeouts, reconcile cadence… | see file |
-| `recorder.*` | minute-data recorder | on, `logs/minutes.csv` |
+| `recorder.csv_by_hedge` | separate minute-data CSV for every hedge | see config |
 | `logging.dashboard` / `logging.file` | Rich dashboard on a tty; log file while it runs | on, `logs/engine.log` |
 
 ## Credentials (`.env`, live only)
@@ -213,7 +222,7 @@ entropy_arb/venue_lighter.py  zkLighter adapter (mainnet, Robinhood chain)
 entropy_arb/engine.py    the two-venue strategy loop
 entropy_arb/dashboard.py Rich terminal dashboard
 entropy_arb/recorder.py  1-minute orderbook bars
-tools/analyze.py         minutes.csv -> suggested thresholds
+tools/analyze.py         hedge-specific minutes CSV -> suggested thresholds
 tests/                   python3 -m pytest tests/
 ```
 

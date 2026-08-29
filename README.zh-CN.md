@@ -84,16 +84,17 @@ python3 main.py --record-only --symbol SNDK --hedge lighter-rh
 ```
 
 至少运行几个小时（最好一整天——溢价存在日内规律），数据写入
-`logs/minutes.csv`。
+`logs/minutes-lighter-rh.csv`（本例使用 `--hedge lighter-rh`）。
 
 **第二步：分析数据、设定阈值：**
 
 ```bash
-python3 tools/analyze.py
+python3 tools/analyze.py --csv logs/minutes-lighter-rh.csv
 ```
 
 它会输出溢价分布、各档带宽的历史触发频率，以及可直接粘贴进
-`config.yaml` 的 `thresholds:` 配置块。
+`config.yaml` 的 `thresholds:` 配置块。始终传入与采集时 `--hedge`
+相同的 CSV；分析 `tradexyz` 数据时加上 `--fees-bps 1.0`。
 
 **第三步：实盘** —— 填写 `.env`，安装签名 SDK，仓位上限从刚好满足
 交易所最小名义的水平开始：
@@ -133,6 +134,11 @@ python3 main.py --symbol SNDK --hedge lighter-rh
 约为 1.0），因此其表格与建议值可直接填入配置。`--hours 24`
 可只分析最近数据；溢价中枢会漂移，请定期重新分析并更新 `config.yaml`。
 
+默认情况下，每个对冲腿写入各自的 CSV：`logs/minutes-lighter.csv`、
+`logs/minutes-lighter-rh.csv`、`logs/minutes-tradexyz.csv`。不要混合分析：
+它们的报价资产、手续费和溢价状态不同。只分析实际交易对冲腿对应的文件，例如
+`python3 tools/analyze.py --csv logs/minutes-lighter.csv`。
+
 ## 配置说明
 
 策略在 `config.yaml`（严格校验——未知键名直接报错），密钥在 `.env`。
@@ -152,7 +158,7 @@ python3 main.py --symbol SNDK --hedge lighter-rh
 | `inventory.scale_bps` / `floor_frac` | 库存阶梯（仓位超过上限的 `floor_frac` 后额外加价） | 10 / 0.5 |
 | `execution.premium_persist_sec` | 信号需持续多久才触发 | 0.3 |
 | `execution.*` | 滑点保护、超时、对账周期等 | 见配置文件 |
-| `recorder.*` | 分钟数据采集器 | 开启，`logs/minutes.csv` |
+| `recorder.csv_by_hedge` | 各对冲腿独立的分钟数据 CSV | 见配置文件 |
 | `logging.dashboard` / `logging.file` | 终端仪表盘；开启时日志写入文件 | 开启，`logs/engine.log` |
 
 ## 密钥配置（`.env`，仅实盘需要）
@@ -197,7 +203,7 @@ entropy_arb/venue_lighter.py  zkLighter 适配器（主网、Robinhood 链）
 entropy_arb/engine.py    双交易所策略主循环
 entropy_arb/dashboard.py Rich 终端仪表盘
 entropy_arb/recorder.py  分钟级盘口数据采集
-tools/analyze.py         minutes.csv -> 阈值建议
+tools/analyze.py         对冲腿专属的分钟 CSV -> 阈值建议
 tests/                   python3 -m pytest tests/
 ```
 

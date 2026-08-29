@@ -32,6 +32,11 @@ HL_API_URL = "https://api.hyperliquid.xyz"
 HL_WS_URL = "wss://api.hyperliquid.xyz/ws"   # official ws — the only HL feed used
 
 HEDGE_VENUES = ("lighter", "lighter-rh", "tradexyz")
+DEFAULT_RECORDER_CSV_BY_HEDGE = {
+    "lighter": "logs/minutes-lighter.csv",
+    "lighter-rh": "logs/minutes-lighter-rh.csv",
+    "tradexyz": "logs/minutes-tradexyz.csv",
+}
 
 
 @dataclass(frozen=True)
@@ -193,7 +198,14 @@ _SCHEMA: Dict[str, Any] = {
     },
     "recorder": {
         "enabled": bool,
+        # `csv` is the legacy single-path form. Prefer `csv_by_hedge` so
+        # samples from markets with different quote assets never get mixed.
         "csv": str,
+        "csv_by_hedge": {
+            "lighter": str,
+            "lighter-rh": str,
+            "tradexyz": str,
+        },
     },
     "logging": {
         "level": str,
@@ -236,6 +248,26 @@ def _validate(node: Any, schema: Dict[str, Any], path: str = "") -> None:
 
 def _get(d: dict, section: str, key: str, default):
     return (d.get(section) or {}).get(key, default)
+
+
+def _recorder_csv(raw: dict, hedge_venue: str) -> str:
+    """Resolve one recorder path while keeping per-hedge paths isolated."""
+    recorder = raw.get("recorder") or {}
+    paths = recorder.get("csv_by_hedge")
+    if paths is None:
+        return recorder.get("csv", DEFAULT_RECORDER_CSV_BY_HEDGE[hedge_venue])
+    if "csv" in recorder:
+        raise ConfigError("recorder.csv and recorder.csv_by_hedge cannot both "
+                          "be set; use csv_by_hedge for separate datasets")
+
+    missing = [venue for venue in HEDGE_VENUES if not paths.get(venue, "").strip()]
+    if missing:
+        raise ConfigError("recorder.csv_by_hedge must define a path for "
+                          f"{missing[0]!r}")
+    values = [paths[venue] for venue in HEDGE_VENUES]
+    if len(set(values)) != len(values):
+        raise ConfigError("recorder.csv_by_hedge paths must be distinct")
+    return paths[hedge_venue]
 
 
 # ------------------------------------------------------------------ env layer
@@ -360,7 +392,7 @@ def load_config(config_file: str = "config.yaml", env_file: str = ".env", *,
         venue_probe_sec=float(_get(raw, "execution", "venue_probe_sec", 30.0)),
         http_keepalive_sec=float(_get(raw, "execution", "http_keepalive_sec", 10.0)),
         recorder_enabled=bool(_get(raw, "recorder", "enabled", True)),
-        recorder_csv=_get(raw, "recorder", "csv", "logs/minutes.csv"),
+        recorder_csv=_recorder_csv(raw, hedge_venue),
         log_level=str(_get(raw, "logging", "level", "INFO")).upper(),
         status_interval_sec=float(_get(raw, "logging", "status_interval_sec", 30.0)),
         trades_csv=_get(raw, "logging", "trades_csv", "logs/trades.csv"),

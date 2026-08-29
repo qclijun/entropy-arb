@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Analyze recorded minute data and suggest config.yaml thresholds.
 
-Reads the CSV written by the built-in recorder (logs/minutes.csv by default)
-and prints:
+Reads the hedge-specific CSV written by the built-in recorder and prints:
 
   * the premium distribution (midline candidates),
   * how often each candidate upper/lower band would have fired,
@@ -12,8 +11,8 @@ and prints:
 以及可直接粘贴进 config.yaml 的 thresholds 建议值。
 
 Usage:
-    python3 tools/analyze.py                    # logs/minutes.csv
-    python3 tools/analyze.py --csv path.csv --hours 24 --min-samples 10
+    python3 tools/analyze.py --csv logs/minutes-lighter.csv
+    python3 tools/analyze.py --csv logs/minutes-tradexyz.csv --fees-bps 1.0
 """
 from __future__ import annotations
 
@@ -63,7 +62,9 @@ def load_rows(path: str, hours: float, min_samples: int) -> list:
 def main() -> None:
     p = argparse.ArgumentParser(description="suggest thresholds from recorded "
                                             "minute data")
-    p.add_argument("--csv", default="logs/minutes.csv")
+    p.add_argument("--csv", default="logs/minutes.csv",
+                   help="CSV for the matching --hedge (legacy default: "
+                        "logs/minutes.csv)")
     p.add_argument("--hours", type=float, default=0.0,
                    help="only use the last N hours (0 = all data)")
     p.add_argument("--min-samples", type=int, default=10,

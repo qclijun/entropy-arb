@@ -44,7 +44,7 @@ def test_example_config_loads():
     assert cfg.hedge.kind == "lighter"
     assert cfg.hedge.lighter_profile.chain_id == 466324
     assert cfg.entropy.symbol == "SNDK" and cfg.hedge.symbol == "SNDK"
-    assert cfg.recorder_enabled and cfg.recorder_csv
+    assert cfg.recorder_enabled and cfg.recorder_csv == "logs/minutes-lighter-rh.csv"
     assert cfg.dashboard and cfg.log_file
 
 
@@ -55,6 +55,42 @@ def test_minimal_defaults():
     assert cfg.hedge.lighter_profile.chain_id == 304
     assert cfg.take_fraction == 0.5          # defaults kick in
     assert cfg.recorder_enabled is True
+    assert cfg.recorder_csv == "logs/minutes-lighter.csv"
+
+
+def test_recorder_selects_distinct_csv_for_each_hedge():
+    paths = """
+recorder:
+  csv_by_hedge:
+    lighter: data/mainnet.csv
+    lighter-rh: data/robinhood.csv
+    tradexyz: data/tradexyz.csv
+"""
+    assert load(MINIMAL + paths, hedge="lighter").recorder_csv == "data/mainnet.csv"
+    assert (load(MINIMAL + paths, hedge="lighter-rh").recorder_csv
+            == "data/robinhood.csv")
+    assert (load(MINIMAL + paths, hedge="tradexyz").recorder_csv
+            == "data/tradexyz.csv")
+
+
+def test_legacy_single_recorder_csv_remains_supported():
+    cfg = load(MINIMAL + "\nrecorder:\n  csv: logs/legacy.csv\n")
+    assert cfg.recorder_csv == "logs/legacy.csv"
+
+
+def test_recorder_csv_paths_must_be_complete_and_distinct():
+    expect_error(MINIMAL + """
+recorder:
+  csv_by_hedge:
+    lighter: data/mainnet.csv
+""", "recorder.csv_by_hedge must define a path for 'lighter-rh'")
+    expect_error(MINIMAL + """
+recorder:
+  csv_by_hedge:
+    lighter: data/shared.csv
+    lighter-rh: data/shared.csv
+    tradexyz: data/tradexyz.csv
+""", "paths must be distinct")
 
 
 def test_tradexyz_hedge():
