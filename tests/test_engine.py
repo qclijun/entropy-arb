@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from entropy_arb.book import OrderBook  # noqa: E402
 from entropy_arb.config import load_config  # noqa: E402
+from entropy_arb import engine as engine_module  # noqa: E402
 from entropy_arb.engine import Engine  # noqa: E402
 
 NO_ENV = os.path.join(tempfile.gettempdir(), "entropy-arb-no-such.env")
@@ -143,6 +144,40 @@ def test_scan_respects_position_caps():
     eng.hedge.position = 100.0
     eng.hedge.cap_usd = 10000.0
     assert run_scan(eng) is None
+
+
+def test_engine_session_honors_environment_proxy():
+    """All venue REST calls share a session that must inherit proxy settings."""
+    observed = {}
+
+    class FakeSession:
+        async def close(self):
+            return None
+
+    real_session = engine_module.aiohttp.ClientSession
+    real_connector = engine_module.aiohttp.TCPConnector
+
+    def fake_session(*args, **kwargs):
+        observed.update(kwargs)
+        return FakeSession()
+
+    async def run():
+        engine_module.aiohttp.ClientSession = fake_session
+        engine_module.aiohttp.TCPConnector = lambda **kwargs: object()
+        try:
+            eng = Engine(make_cfg(), record_only=True)
+
+            async def no_op():
+                return None
+
+            eng._run_inner = no_op
+            await eng.run()
+        finally:
+            engine_module.aiohttp.ClientSession = real_session
+            engine_module.aiohttp.TCPConnector = real_connector
+
+    asyncio.run(run())
+    assert observed["trust_env"] is True
 
 
 if __name__ == "__main__":

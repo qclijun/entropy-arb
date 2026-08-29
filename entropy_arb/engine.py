@@ -123,8 +123,13 @@ class Engine:
     async def run(self) -> None:
         # Long keepalive so order-path connections survive quiet spells; the
         # keepalive loop pings inside this window to hold them open.
-        self.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(
-            keepalive_timeout=75.0, ttl_dns_cache=300))
+        self.session = aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(
+                keepalive_timeout=75.0, ttl_dns_cache=300),
+            # Honor HTTP(S)_PROXY / NO_PROXY when the runtime requires an
+            # outbound proxy (for example, record-only data collection).
+            trust_env=True,
+        )
         try:
             await self._run_inner()
         finally:
