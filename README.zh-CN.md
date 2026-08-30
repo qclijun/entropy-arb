@@ -139,6 +139,29 @@ python3 main.py --symbol SNDK --hedge lighter-rh
 它们的报价资产、手续费和溢价状态不同。只分析实际交易对冲腿对应的文件，例如
 `python3 tools/analyze.py --csv logs/minutes-lighter.csv`。
 
+## 回测
+
+`tools/backtest.py` 会把一个对冲腿专属的分钟 CSV 回放到当前策略：含手续费的
+可成交价差、中枢带宽、信号持续时间、冷却、库存阶梯、持仓上限和各场所下单预算。
+回测从零仓位开始，不会发送任何订单。默认读取所传 `--hedge` 在
+`recorder.csv_by_hedge` 中对应的路径：
+
+```bash
+python3 tools/backtest.py --symbol SNDK --hedge lighter-rh
+python3 tools/backtest.py --symbol SNDK --hedge tradexyz \
+  --extra-slippage-bps 2 --trades-csv logs/backtest-tradexyz.csv
+```
+
+使用 `--csv` 覆盖输入文件，使用 `--assumed-depth-usd` 改变假定的顶档名义深度，
+使用 `--size-step` / `--min-base` 匹配市场的数量规则。回放 `tradexyz` 前，确认
+配置中的 `hedge.taker_fee_bps` 已填入其当前费率。
+
+这是刻意保守的 **L1 分钟 bar 回放**，而不是成交撮合模拟：它假定两条腿均以该行
+的 bid/ask 全额成交（可额外加入不利滑点），不建模资金费率，也无法推断排队位置、
+盘口深度、部分成交或分钟内的信号持续时间。GitHub 回测框架比较及获取 tick/L2
+数据后的迁移方案见
+[backtesting-frameworks.md](docs/research/backtesting-frameworks.md)。
+
 ## 配置说明
 
 策略在 `config.yaml`（严格校验——未知键名直接报错），密钥在 `.env`。
@@ -204,6 +227,7 @@ entropy_arb/engine.py    双交易所策略主循环
 entropy_arb/dashboard.py Rich 终端仪表盘
 entropy_arb/recorder.py  分钟级盘口数据采集
 tools/analyze.py         对冲腿专属的分钟 CSV -> 阈值建议
+tools/backtest.py        保守的分钟 bar 策略回放
 tests/                   python3 -m pytest tests/
 ```
 

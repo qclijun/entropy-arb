@@ -154,6 +154,32 @@ them: their quote assets, fees, and premium regimes differ. Analyze the file
 for the hedge you traded, for example `python3 tools/analyze.py --csv
 logs/minutes-lighter.csv`.
 
+## Backtesting
+
+`tools/backtest.py` replays a hedge-specific minute CSV through the current
+strategy's fee-aware crossing, midline bands, persistence gate, cooldown,
+inventory ladder, position caps, and per-venue order budget. It starts flat
+and writes no orders. By default it reads the `recorder.csv_by_hedge` path for
+the supplied `--hedge`:
+
+```bash
+python3 tools/backtest.py --symbol SNDK --hedge lighter-rh
+python3 tools/backtest.py --symbol SNDK --hedge tradexyz \
+  --extra-slippage-bps 2 --trades-csv logs/backtest-tradexyz.csv
+```
+
+Pass `--csv` to override the input, `--assumed-depth-usd` to vary the
+synthetic top-of-book notional, and `--size-step` / `--min-base` to match the
+market's quantity rules. For `tradexyz`, ensure `hedge.taker_fee_bps` in the
+config reflects its current fee before running the replay.
+
+This is intentionally a conservative **L1 minute-bar replay**, not a fill
+simulator: it assumes both legs fully fill at that row's bid/ask (plus optional
+adverse slippage), has no funding model, and cannot infer queue position,
+depth, partial fills, or minute-internal persistence. The framework comparison
+and migration path for tick/L2 data are recorded in
+[backtesting-frameworks.md](docs/research/backtesting-frameworks.md).
+
 ## Configuration
 
 Strategy lives in `config.yaml` (validated — unknown keys are startup
@@ -223,6 +249,7 @@ entropy_arb/engine.py    the two-venue strategy loop
 entropy_arb/dashboard.py Rich terminal dashboard
 entropy_arb/recorder.py  1-minute orderbook bars
 tools/analyze.py         hedge-specific minutes CSV -> suggested thresholds
+tools/backtest.py        conservative minute-bar strategy replay
 tests/                   python3 -m pytest tests/
 ```
 
