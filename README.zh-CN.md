@@ -84,12 +84,12 @@ python3 main.py --record-only --symbol SNDK --hedge lighter-rh
 ```
 
 至少运行几个小时（最好一整天——溢价存在日内规律），数据写入
-`logs/minutes-lighter-rh.csv`（本例使用 `--hedge lighter-rh`）。
+`logs/minutes-lighter-rh-SNDK.csv`（本例使用 SNDK 和 `--hedge lighter-rh`）。
 
 **第二步：分析数据、设定阈值：**
 
 ```bash
-python3 tools/analyze.py --csv logs/minutes-lighter-rh.csv
+python3 tools/analyze.py --csv logs/minutes-lighter-rh-SNDK.csv
 ```
 
 它会输出溢价分布、各档带宽的历史触发频率，以及可直接粘贴进
@@ -134,10 +134,10 @@ python3 main.py --symbol SNDK --hedge lighter-rh
 约为 1.0），因此其表格与建议值可直接填入配置。`--hours 24`
 可只分析最近数据；溢价中枢会漂移，请定期重新分析并更新 `config.yaml`。
 
-默认情况下，每个对冲腿写入各自的 CSV：`logs/minutes-lighter.csv`、
-`logs/minutes-lighter-rh.csv`、`logs/minutes-tradexyz.csv`。不要混合分析：
-它们的报价资产、手续费和溢价状态不同。只分析实际交易对冲腿对应的文件，例如
-`python3 tools/analyze.py --csv logs/minutes-lighter.csv`。
+默认情况下，每个币种与对冲腿组合写入独立 CSV，例如
+`logs/minutes-lighter-SNDK.csv` 或 `logs/minutes-tradexyz-HYPE.csv`。
+配置项是基础路径，运行时会在 `.csv` 前自动加入币种；成交记录也同样隔离
+（例如 `logs/trades-SNDK.csv`）。不要混合分析不同市场的数据。
 
 ## 回测
 
@@ -181,7 +181,7 @@ python3 tools/backtest.py --symbol SNDK --hedge tradexyz \
 | `inventory.scale_bps` / `floor_frac` | 库存阶梯（仓位超过上限的 `floor_frac` 后额外加价） | 10 / 0.5 |
 | `execution.premium_persist_sec` | 信号需持续多久才触发 | 0.3 |
 | `execution.*` | 滑点保护、超时、对账周期等 | 见配置文件 |
-| `recorder.csv_by_hedge` | 各对冲腿独立的分钟数据 CSV | 见配置文件 |
+| `recorder.csv_by_hedge` | 基础路径；输出按对冲腿和币种分别保存 | 见配置文件 |
 | `logging.dashboard` / `logging.file` | 终端仪表盘；开启时日志写入文件 | 开启，`logs/engine.log` |
 
 ## 密钥配置（`.env`，仅实盘需要）

@@ -93,12 +93,12 @@ python3 main.py --record-only --symbol SNDK --hedge lighter-rh
 
 Let it run for at least a few hours (a day is better — premiums have
 intraday regimes). With `--hedge lighter-rh`, it writes
-`logs/minutes-lighter-rh.csv`.
+`logs/minutes-lighter-rh-SNDK.csv`.
 
 **2. Analyze and set your thresholds:**
 
 ```bash
-python3 tools/analyze.py --csv logs/minutes-lighter-rh.csv
+python3 tools/analyze.py --csv logs/minutes-lighter-rh-SNDK.csv
 ```
 
 It prints the premium distribution, how often each candidate band would have
@@ -148,11 +148,11 @@ suggestions translate directly into config values. `--hours 24` restricts to
 recent data; premiums drift, so re-run it regularly and update
 `config.yaml`.
 
-Each hedge writes to its own CSV by default: `logs/minutes-lighter.csv`,
-`logs/minutes-lighter-rh.csv`, or `logs/minutes-tradexyz.csv`. Do not mix
-them: their quote assets, fees, and premium regimes differ. Analyze the file
-for the hedge you traded, for example `python3 tools/analyze.py --csv
-logs/minutes-lighter.csv`.
+Each symbol and hedge pair writes to its own CSV by default, such as
+`logs/minutes-lighter-SNDK.csv` or `logs/minutes-tradexyz-HYPE.csv`. The
+configured path is a base path; the symbol is inserted before `.csv` at
+runtime. Trade records are isolated the same way (`logs/trades-SNDK.csv`).
+Do not mix markets: their quote assets, fees, and premium regimes differ.
 
 ## Backtesting
 
@@ -200,7 +200,7 @@ errors), credentials in `.env`, and the markets on the command line
 | `inventory.scale_bps` / `floor_frac` | inventory ladder (extra bps past `floor_frac` of the cap) | 10 / 0.5 |
 | `execution.premium_persist_sec` | edge must persist before firing | 0.3 |
 | `execution.*` | slippage bounds, timeouts, reconcile cadence… | see file |
-| `recorder.csv_by_hedge` | separate minute-data CSV for every hedge | see config |
+| `recorder.csv_by_hedge` | base paths; output CSVs are separated by hedge and symbol | see config |
 | `logging.dashboard` / `logging.file` | Rich dashboard on a tty; log file while it runs | on, `logs/engine.log` |
 
 ## Credentials (`.env`, live only)

@@ -30,11 +30,11 @@
 #
 # midline_bps is a number YOU derive from recorded data. Run the bot
 # (--record-only), then analyze the CSV matching its --hedge, e.g.:
-# python3 tools/analyze.py --csv logs/minutes-lighter-rh.csv
+# python3 tools/analyze.py --csv logs/minutes-lighter-rh-SNDK.csv
 #
 # midline_bps 是你根据采集数据设定的值。先运行机器人（--record-only）采集
 # 与 --hedge 对应的 CSV，例如：
-# python3 tools/analyze.py --csv logs/minutes-lighter-rh.csv 获取建议值。
+# python3 tools/analyze.py --csv logs/minutes-lighter-rh-SNDK.csv 获取建议值。
 # 两个方向的门槛都已扣除手续费（引擎会在此之上另加手续费），因此一次完整往返
 # 扣费后净赚 >= upper + lower bps。
 thresholds:
@@ -90,10 +90,12 @@ execution:
 # writes one CSV row per minute. This is the input for tools/analyze.py.
 # 机器人运行期间自动开启：每秒采样两边真实盘口，每分钟写一行 CSV，
 # 供 tools/analyze.py 分析并设定上方 thresholds。
-# Keep every hedge in a different file: their premiums, fees, and quote assets
-# are not comparable. All three paths are required and must be distinct.
+# These are base paths. The symbol is inserted before `.csv` at runtime, so
+# SNDK + lighter-rh writes `logs/minutes-lighter-rh-SNDK.csv`. All three hedge
+# paths are required and must be distinct.
 # 每个对冲腿必须使用不同文件：它们的溢价、手续费和报价资产不可混合分析。
-# 三个路径均为必填，且必须互不相同。
+# 运行时会在 `.csv` 前自动加入币种；例如 SNDK + lighter-rh 写入
+# `logs/minutes-lighter-rh-SNDK.csv`。三个对冲腿路径均为必填且互不相同。
 recorder:
   enabled: true
   csv_by_hedge:
@@ -112,6 +114,7 @@ recorder:
 logging:
   level: INFO
   status_interval_sec: 30.0
+  # Base path; SNDK writes logs/trades-SNDK.csv. / 基础路径；会自动加入币种。
   trades_csv: logs/trades.csv
   dashboard: true
   file: logs/engine.log

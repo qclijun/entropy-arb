@@ -44,7 +44,9 @@ def test_example_config_loads():
     assert cfg.hedge.kind == "lighter"
     assert cfg.hedge.lighter_profile.chain_id == 466324
     assert cfg.entropy.symbol == "SNDK" and cfg.hedge.symbol == "SNDK"
-    assert cfg.recorder_enabled and cfg.recorder_csv == "logs/minutes-lighter-rh.csv"
+    assert (cfg.recorder_enabled
+            and cfg.recorder_csv == "logs/minutes-lighter-rh-SNDK.csv")
+    assert cfg.trades_csv == "logs/trades-SNDK.csv"
     assert cfg.dashboard and cfg.log_file
 
 
@@ -55,7 +57,7 @@ def test_minimal_defaults():
     assert cfg.hedge.lighter_profile.chain_id == 304
     assert cfg.take_fraction == 0.5          # defaults kick in
     assert cfg.recorder_enabled is True
-    assert cfg.recorder_csv == "logs/minutes-lighter.csv"
+    assert cfg.recorder_csv == "logs/minutes-lighter-SNDK.csv"
 
 
 def test_recorder_selects_distinct_csv_for_each_hedge():
@@ -66,16 +68,32 @@ recorder:
     lighter-rh: data/robinhood.csv
     tradexyz: data/tradexyz.csv
 """
-    assert load(MINIMAL + paths, hedge="lighter").recorder_csv == "data/mainnet.csv"
+    assert (load(MINIMAL + paths, hedge="lighter").recorder_csv
+            == "data/mainnet-SNDK.csv")
     assert (load(MINIMAL + paths, hedge="lighter-rh").recorder_csv
-            == "data/robinhood.csv")
+            == "data/robinhood-SNDK.csv")
     assert (load(MINIMAL + paths, hedge="tradexyz").recorder_csv
-            == "data/tradexyz.csv")
+            == "data/tradexyz-SNDK.csv")
 
 
 def test_legacy_single_recorder_csv_remains_supported():
     cfg = load(MINIMAL + "\nrecorder:\n  csv: logs/legacy.csv\n")
-    assert cfg.recorder_csv == "logs/legacy.csv"
+    assert cfg.recorder_csv == "logs/legacy-SNDK.csv"
+
+
+def test_csv_paths_are_distinct_for_each_symbol():
+    sndk = load(MINIMAL, symbol="SNDK", hedge="lighter")
+    hype = load(MINIMAL, symbol="HYPE", hedge="lighter")
+    assert sndk.recorder_csv == "logs/minutes-lighter-SNDK.csv"
+    assert hype.recorder_csv == "logs/minutes-lighter-HYPE.csv"
+    assert sndk.trades_csv == "logs/trades-SNDK.csv"
+    assert hype.trades_csv == "logs/trades-HYPE.csv"
+
+
+def test_custom_csv_paths_are_scoped_by_symbol():
+    cfg = load(MINIMAL + "\nlogging:\n  trades_csv: data/fills.csv\n",
+               symbol="HYPE")
+    assert cfg.trades_csv == "data/fills-HYPE.csv"
 
 
 def test_recorder_csv_paths_must_be_complete_and_distinct():

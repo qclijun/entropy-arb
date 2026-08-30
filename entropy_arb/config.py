@@ -250,12 +250,20 @@ def _get(d: dict, section: str, key: str, default):
     return (d.get(section) or {}).get(key, default)
 
 
-def _recorder_csv(raw: dict, hedge_venue: str) -> str:
-    """Resolve one recorder path while keeping per-hedge paths isolated."""
+def _csv_for_symbol(path: str, symbol: str) -> str:
+    """Add the market symbol before a CSV path's extension."""
+    stem, ext = os.path.splitext(path)
+    safe_symbol = symbol.replace("/", "-").replace("\\", "-")
+    return f"{stem}-{safe_symbol}{ext}"
+
+
+def _recorder_csv(raw: dict, hedge_venue: str, symbol: str) -> str:
+    """Resolve one recorder path while keeping markets isolated."""
     recorder = raw.get("recorder") or {}
     paths = recorder.get("csv_by_hedge")
     if paths is None:
-        return recorder.get("csv", DEFAULT_RECORDER_CSV_BY_HEDGE[hedge_venue])
+        path = recorder.get("csv", DEFAULT_RECORDER_CSV_BY_HEDGE[hedge_venue])
+        return _csv_for_symbol(path, symbol)
     if "csv" in recorder:
         raise ConfigError("recorder.csv and recorder.csv_by_hedge cannot both "
                           "be set; use csv_by_hedge for separate datasets")
@@ -267,7 +275,7 @@ def _recorder_csv(raw: dict, hedge_venue: str) -> str:
     values = [paths[venue] for venue in HEDGE_VENUES]
     if len(set(values)) != len(values):
         raise ConfigError("recorder.csv_by_hedge paths must be distinct")
-    return paths[hedge_venue]
+    return _csv_for_symbol(paths[hedge_venue], symbol)
 
 
 # ------------------------------------------------------------------ env layer
@@ -392,10 +400,11 @@ def load_config(config_file: str = "config.yaml", env_file: str = ".env", *,
         venue_probe_sec=float(_get(raw, "execution", "venue_probe_sec", 30.0)),
         http_keepalive_sec=float(_get(raw, "execution", "http_keepalive_sec", 10.0)),
         recorder_enabled=bool(_get(raw, "recorder", "enabled", True)),
-        recorder_csv=_recorder_csv(raw, hedge_venue),
+        recorder_csv=_recorder_csv(raw, hedge_venue, symbol),
         log_level=str(_get(raw, "logging", "level", "INFO")).upper(),
         status_interval_sec=float(_get(raw, "logging", "status_interval_sec", 30.0)),
-        trades_csv=_get(raw, "logging", "trades_csv", "logs/trades.csv"),
+        trades_csv=_csv_for_symbol(
+            _get(raw, "logging", "trades_csv", "logs/trades.csv"), symbol),
         dashboard=bool(_get(raw, "logging", "dashboard", True)),
         log_file=_get(raw, "logging", "file", "logs/engine.log"),
     )
