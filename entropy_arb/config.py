@@ -45,13 +45,17 @@ class LighterProfile:
 # Endpoint profiles for the two supported zkLighter deployments (these match
 # lighter-python's lighter.endpoint_profiles, duplicated here so --record-only
 # data collection works without the SDK installed).
+# NOTE (local patch, 2026-10-10): anonymous websocket handshakes to the bare
+# /stream endpoint are rejected with HTTP 400; public market data must use
+# ?readonly=true. Authenticated live-trading sessions should revert to the
+# plain /stream URL.
 LIGHTER_PROFILES: Dict[str, LighterProfile] = {
     "lighter": LighterProfile(
         "mainnet", "https://mainnet.zklighter.elliot.ai",
-        "wss://mainnet.zklighter.elliot.ai/stream", 304),
+        "wss://mainnet.zklighter.elliot.ai/stream?readonly=true", 304),
     "lighter-rh": LighterProfile(
         "robinhood", "https://api.rh.lighter.xyz",
-        "wss://api.rh.lighter.xyz/stream", 466324),
+        "wss://api.rh.lighter.xyz/stream?readonly=true", 466324),
 }
 
 
@@ -360,7 +364,9 @@ def load_config(config_file: str = "config.yaml", env_file: str = ".env", *,
         venue_probe_sec=float(_get(raw, "execution", "venue_probe_sec", 30.0)),
         http_keepalive_sec=float(_get(raw, "execution", "http_keepalive_sec", 10.0)),
         recorder_enabled=bool(_get(raw, "recorder", "enabled", True)),
-        recorder_csv=_get(raw, "recorder", "csv", "logs/minutes.csv"),
+        # venue-aware default: same symbol on two hedge venues must not share a CSV
+        recorder_csv=_get(raw, "recorder", "csv",
+                          f"logs/minutes-{symbol.lower()}-{hedge_venue}.csv"),
         log_level=str(_get(raw, "logging", "level", "INFO")).upper(),
         status_interval_sec=float(_get(raw, "logging", "status_interval_sec", 30.0)),
         trades_csv=_get(raw, "logging", "trades_csv", "logs/trades.csv"),

@@ -90,6 +90,8 @@ execution:
 # 供 tools/analyze.py 分析并设定上方 thresholds。
 recorder:
   enabled: true
+  # Omit csv to auto-use logs/minutes-<symbol>-<hedge_venue>.csv.
+  # Set it explicitly when one symbol runs on two hedge venues at once.
   csv: logs/minutes.csv
 
 # ==================== LOGGING & DASHBOARD / 日志与仪表盘 ====================
