@@ -90,7 +90,7 @@ execution:
 # 供 tools/analyze.py 分析并设定上方 thresholds。
 recorder:
   enabled: true
-  csv: logs/minutes-nbis-xyz.csv
+  csv: /home/hatch/workspace/projects/entropy-arb/logs/minutes-nbis-xyz.csv
 
 # ==================== LOGGING & DASHBOARD / 日志与仪表盘 ====================
 # On a terminal the bot shows a live Rich dashboard (books, signal, positions,
@@ -103,6 +103,6 @@ recorder:
 logging:
   level: INFO
   status_interval_sec: 30.0
-  trades_csv: logs/trades-nbis-xyz.csv
+  trades_csv: /home/hatch/workspace/projects/entropy-arb/logs/trades-nbis-xyz.csv
   dashboard: true
   file: logs/engine-sndk.log

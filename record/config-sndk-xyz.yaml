@@ -29,10 +29,10 @@
 # full round trip nets >= upper + lower bps after fees by construction.
 #
 # midline_bps is a number YOU derive from recorded data. Run the bot
-# (--record-only) to collect logs/minutes-sndk-xyz.csv, then:  python3 tools/analyze.py
+# (--record-only) to collect /home/hatch/workspace/projects/entropy-arb/logs/minutes-sndk-xyz.csv, then:  python3 tools/analyze.py
 #
 # midline_bps 是你根据采集数据设定的值。先运行机器人（--record-only）采集
-# logs/minutes-sndk-xyz.csv，再运行 python3 tools/analyze.py 获取建议值。
+# /home/hatch/workspace/projects/entropy-arb/logs/minutes-sndk-xyz.csv，再运行 python3 tools/analyze.py 获取建议值。
 # 两个方向的门槛都已扣除手续费（引擎会在此之上另加手续费），因此一次完整往返
 # 扣费后净赚 >= upper + lower bps。
 thresholds:
@@ -90,7 +90,7 @@ execution:
 # 供 tools/analyze.py 分析并设定上方 thresholds。
 recorder:
   enabled: true
-  csv: logs/minutes-sndk-xyz.csv
+  csv: /home/hatch/workspace/projects/entropy-arb/logs/minutes-sndk-xyz.csv
 
 # ==================== LOGGING & DASHBOARD / 日志与仪表盘 ====================
 # On a terminal the bot shows a live Rich dashboard (books, signal, positions,
@@ -103,6 +103,6 @@ recorder:
 logging:
   level: INFO
   status_interval_sec: 30.0
-  trades_csv: logs/trades-sndk-xyz.csv
+  trades_csv: /home/hatch/workspace/projects/entropy-arb/logs/trades-sndk-xyz.csv
   dashboard: true
   file: logs/engine-sndk.log
