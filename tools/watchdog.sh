@@ -1,49 +1,47 @@
 #!/usr/bin/env bash
-# entropy-arb watchdog (DRAFT — 2026-10-12, 未启用)
+# entropy-arb watchdog — 每 15 分钟由 cron 调用，检查只读采集进程，死的拉起。
 #
-# 用途：采集进程死于 VM 重建后自动拉起。设计为由 cron 每 15 分钟调用一次。
-# cron 由 runtime 托管，VM 重建后依然会触发；常驻进程做不到这一点。
+# 保活的 (symbol, hedge) 对：
+#   SNDK/lighter-rh  EWY/lighter  NBIS/lighter          (Lighter 系)
+#   DRAM/tradexyz    EWY/tradexyz NBIS/tradexyz SNDK/tradexyz  (xyz)
+# 注意 H100 已于 2026-10-17 从 Entropy(io) 下架，不再保活。
 #
-# 行为：
-#   - 对 SNDK / EWY / NBIS 逐个 pgrep 检查 "main.py --record-only --symbol <SYM>"
-#   - 缺失则 nohup 拉起（--record-only 只读模式，无需密钥、不下单），日志续写到 logs/stdout-<sym>.log
-#   - 每次拉起记一行到 logs/watchdog.log；flock 防 cron 重叠时双重启动
-#
-# 前置条件（启用前必须先验证）：
-#   1. Jerel 拍板"重启"；
-#   2. 主聊天上下文先做一次连通性实测：worker 上下文曾出现出口代理 403，
-#      若主上下文同样 403，则采集根本连不上交易所，watchdog 无意义，先修网络再说。
-#
-# 启用方式（主 agent，Jerel 同意重启后）：
-#   chmod +x tools/watchdog.sh
-#   cron.add(id="entropy-arb-watchdog", schedule={kind:interval, every:"15m"},
-#            body=<下方 CRON_BODY>, owner=goal:goal_1d4007e2ef52)
+# 同一 symbol 跑在两个 hedge venue 上是刻意的（多组价差对），CSV 路径已按
+# venue 区分（logs/minutes-<sym>-<venue>.csv），不会互写。
 set -euo pipefail
 
 PROJ="$HOME/workspace/projects/entropy-arb"
 LOG_DIR="$PROJ/logs"
 WATCH_LOG="$LOG_DIR/watchdog.log"
-SYMBOLS=("SNDK" "EWY" "NBIS")
-# hedge venue per symbol: EWY/NBIS delisted from lighter-rh (2026-10-17), use lighter mainnet
-hedge_for() {
-  case "$1" in
-    SNDK) echo "lighter-rh" ;;
-    *)    echo "lighter" ;;
-  esac
-}
 
-for sym in "${SYMBOLS[@]}"; do
+# "SYMBOL:HEDGE:CONFIG" 三元组
+PAIRS=(
+  "SNDK:lighter-rh:record/config-sndk.yaml"
+  "EWY:lighter:record/config-ewy.yaml"
+  "NBIS:lighter:record/config-nbis.yaml"
+  "DRAM:tradexyz:record/config-dram-xyz.yaml"
+  "EWY:tradexyz:record/config-ewy-xyz.yaml"
+  "NBIS:tradexyz:record/config-nbis-xyz.yaml"
+  "SNDK:tradexyz:record/config-sndk-xyz.yaml"
+)
+
+for pair in "${PAIRS[@]}"; do
+  sym="${pair%%:*}"; rest="${pair#*:}"
+  hedge="${rest%%:*}"; cfg="${rest#*:}"
   lower="$(echo "$sym" | tr 'A-Z' 'a-z')"
-  if pgrep -f "main.py --record-only --symbol ${sym} " >/dev/null 2>&1; then
+  # venue 后缀：xyz 进程的日志独立，避免和 lighter 系混写
+  logsuffix="$lower"; [ "$hedge" = "tradexyz" ] && logsuffix="${lower}-xyz"
+  pattern="main.py --record-only --symbol ${sym} --hedge ${hedge} "
+  if pgrep -f "$pattern" >/dev/null 2>&1; then
     continue
   fi
   (
     flock -n 9 || exit 0
-    pgrep -f "main.py --record-only --symbol ${sym} " >/dev/null 2>&1 && exit 0
+    pgrep -f "$pattern" >/dev/null 2>&1 && exit 0
     cd "$PROJ"
-    nohup "$PROJ/.venv/bin/python" main.py --record-only --symbol "$sym" --hedge "$(hedge_for "$sym")" \
-      --config "record/config-${lower}.yaml" --no-dashboard \
-      >> "$LOG_DIR/stdout-${lower}.log" 2>&1 &
-    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) watchdog: restarted ${sym} (pid $!)" >> "$WATCH_LOG"
-  ) 9>"$LOG_DIR/.watchdog-${lower}.lock"
+    nohup "$PROJ/.venv/bin/python" main.py --record-only --symbol "$sym" --hedge "$hedge" \
+      --config "$cfg" --no-dashboard \
+      >> "$LOG_DIR/stdout-${logsuffix}.log" 2>&1 &
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) watchdog: restarted ${sym}/${hedge} (pid $!)" >> "$WATCH_LOG"
+  ) 9>"$LOG_DIR/.watchdog-${logsuffix}.lock"
 done
