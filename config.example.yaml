@@ -90,9 +90,11 @@ execution:
 # 供 tools/analyze.py 分析并设定上方 thresholds。
 recorder:
   enabled: true
-  # Omit csv to auto-use logs/minutes-<symbol>-<hedge_venue>.csv.
-  # Set it explicitly when one symbol runs on two hedge venues at once.
-  csv: logs/minutes.csv
+  # Omit csv to auto-use <config-dir>/minutes-<symbol>-<hedge_venue>.csv
+  # (absolute, venue-aware, never cwd-dependent).
+  # Set it explicitly only when the default doesn't fit; relative paths
+  # resolve against THIS file's directory, $HOME and $VARS are expanded.
+  # csv: logs/minutes.csv
 
 # ==================== LOGGING & DASHBOARD / 日志与仪表盘 ====================
 # On a terminal the bot shows a live Rich dashboard (books, signal, positions,

@@ -242,6 +242,19 @@ def _get(d: dict, section: str, key: str, default):
     return (d.get(section) or {}).get(key, default)
 
 
+def _resolve_data_path(p: str, cfg_dir: str) -> str:
+    """Expand ~/$VARS; resolve relative paths against the config file's dir.
+
+    Data outputs (recorder/trades CSVs) must not depend on the process's cwd —
+    a forgotten `cd` once sent xyz CSVs to /home/hatch/logs. Anchoring on the
+    config file makes the location deterministic no matter where you start.
+    """
+    p = os.path.expandvars(os.path.expanduser(p))
+    if not os.path.isabs(p):
+        p = os.path.normpath(os.path.join(cfg_dir, p))
+    return p
+
+
 # ------------------------------------------------------------------ env layer
 
 def _env_s(name: str) -> Optional[str]:
@@ -259,6 +272,7 @@ def _env_i(name: str) -> Optional[int]:
 def load_config(config_file: str = "config.yaml", env_file: str = ".env", *,
                 symbol: str, hedge_venue: str) -> Config:
     load_dotenv(env_file)
+    cfg_dir = os.path.dirname(os.path.abspath(config_file))
     try:
         with open(config_file) as fh:
             raw = yaml.safe_load(fh) or {}
@@ -364,12 +378,15 @@ def load_config(config_file: str = "config.yaml", env_file: str = ".env", *,
         venue_probe_sec=float(_get(raw, "execution", "venue_probe_sec", 30.0)),
         http_keepalive_sec=float(_get(raw, "execution", "http_keepalive_sec", 10.0)),
         recorder_enabled=bool(_get(raw, "recorder", "enabled", True)),
-        # venue-aware default: same symbol on two hedge venues must not share a CSV
-        recorder_csv=_get(raw, "recorder", "csv",
-                          f"logs/minutes-{symbol.lower()}-{hedge_venue}.csv"),
+        # venue-aware default, anchored on the config file (never on cwd):
+        # same symbol on two hedge venues must not share a CSV.
+        recorder_csv=_resolve_data_path(
+            _get(raw, "recorder", "csv",
+                 f"minutes-{symbol.lower()}-{hedge_venue}.csv"),
+            cfg_dir),
         log_level=str(_get(raw, "logging", "level", "INFO")).upper(),
         status_interval_sec=float(_get(raw, "logging", "status_interval_sec", 30.0)),
-        trades_csv=_get(raw, "logging", "trades_csv", "logs/trades.csv"),
+        trades_csv=_resolve_data_path(_get(raw, "logging", "trades_csv", "trades.csv"), cfg_dir),
         dashboard=bool(_get(raw, "logging", "dashboard", True)),
         log_file=_get(raw, "logging", "file", "logs/engine.log"),
     )
