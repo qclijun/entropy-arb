@@ -45,7 +45,7 @@ thresholds:
 # ======================== VENUES / 交易所参数 ==============================
 entropy:
   dex: io                    # Entropy's dex name on Hyperliquid / Entropy 的 dex 名
-  taker_fee_bps: 0.0         # taker fee / 吃单手续费
+  taker_fee_bps: 0.9         # Growth Mode 下约 0.9bps/边（2026-10-17 核验）；退出则回 9bps
   max_position_usd: 1000     # position cap / 持仓上限（美元）
   max_orders_per_min: 120    # order-send budget, sliding 60s / 每分钟下单预算
 
