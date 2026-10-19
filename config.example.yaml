@@ -103,6 +103,16 @@ recorder:
     lighter-rh: logs/minutes-lighter-rh.csv
     tradexyz: logs/minutes-tradexyz.csv
 
+# `csv` (single path) is still accepted as the legacy form; `csv_by_hedge` is
+# preferred so samples from markets with different quote assets never mix.
+# Omit both to auto-use <config-dir>/minutes-<hedge_venue>-<symbol>.csv.
+# Relative paths resolve against THIS file's directory (never the cwd you
+# happened to start from), and $HOME / $VARS are expanded.
+# `csv` 单路径形式仍被接受为旧版；推荐 `csv_by_hedge`，避免不同报价资产的
+# 市场数据混在一个文件里。两者都省略时默认使用
+# <config目录>/minutes-<hedge_venue>-<symbol>.csv。相对路径以本文件所在目录
+# 为基准（与启动时的 cwd 无关），并展开 $HOME / $VARS。
+
 # ==================== LOGGING & DASHBOARD / 日志与仪表盘 ====================
 # On a terminal the bot shows a live Rich dashboard (books, signal, positions,
 # PnL, recent executions); log lines then go to `file` instead of the console.

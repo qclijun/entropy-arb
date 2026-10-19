@@ -10,9 +10,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from entropy_arb.config import ConfigError, load_config  # noqa: E402
 
-ROOT = os.path.join(os.path.dirname(__file__), "..")
+ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
 EXAMPLE = os.path.join(ROOT, "config.example.yaml")
 NO_ENV = os.path.join(tempfile.gettempdir(), "entropy-arb-no-such.env")
+# Every config written by write_tmp() lands here, and relative CSV paths
+# resolve against this dir (never the cwd the tests run from).
+TMP = tempfile.gettempdir()
 
 
 def write_tmp(text: str) -> str:
@@ -20,6 +23,11 @@ def write_tmp(text: str) -> str:
     f.write(text)
     f.close()
     return f.name
+
+
+def anchored(*parts: str) -> str:
+    """Expected path: *parts* under the temp dir the configs are written to."""
+    return os.path.join(TMP, *parts)
 
 
 MINIMAL = """
@@ -45,8 +53,9 @@ def test_example_config_loads():
     assert cfg.hedge.lighter_profile.chain_id == 466324
     assert cfg.entropy.symbol == "SNDK" and cfg.hedge.symbol == "SNDK"
     assert (cfg.recorder_enabled
-            and cfg.recorder_csv == "logs/minutes-lighter-rh-SNDK.csv")
-    assert cfg.trades_csv == "logs/trades-SNDK.csv"
+            and cfg.recorder_csv == os.path.join(
+                ROOT, "logs", "minutes-lighter-rh-SNDK.csv"))
+    assert cfg.trades_csv == os.path.join(ROOT, "logs", "trades-SNDK.csv")
     assert cfg.dashboard and cfg.log_file
 
 
@@ -57,7 +66,7 @@ def test_minimal_defaults():
     assert cfg.hedge.lighter_profile.chain_id == 304
     assert cfg.take_fraction == 0.5          # defaults kick in
     assert cfg.recorder_enabled is True
-    assert cfg.recorder_csv == "logs/minutes-lighter-SNDK.csv"
+    assert cfg.recorder_csv == anchored("logs", "minutes-lighter-SNDK.csv")
 
 
 def test_recorder_selects_distinct_csv_for_each_hedge():
@@ -68,32 +77,62 @@ recorder:
     lighter-rh: data/robinhood.csv
     tradexyz: data/tradexyz.csv
 """
-    assert (load(MINIMAL + paths, hedge="lighter").recorder_csv
-            == "data/mainnet-SNDK.csv")
-    assert (load(MINIMAL + paths, hedge="lighter-rh").recorder_csv
-            == "data/robinhood-SNDK.csv")
-    assert (load(MINIMAL + paths, hedge="tradexyz").recorder_csv
-            == "data/tradexyz-SNDK.csv")
+    for hedge, name in (("lighter", "mainnet"),
+                        ("lighter-rh", "robinhood"),
+                        ("tradexyz", "tradexyz")):
+        # relative to the CONFIG's dir, not the cwd the test runs from
+        assert load(MINIMAL + paths, hedge=hedge).recorder_csv == anchored(
+            "data", f"{name}-SNDK.csv")
 
 
 def test_legacy_single_recorder_csv_remains_supported():
     cfg = load(MINIMAL + "\nrecorder:\n  csv: logs/legacy.csv\n")
-    assert cfg.recorder_csv == "logs/legacy-SNDK.csv"
+    assert cfg.recorder_csv == anchored("logs", "legacy-SNDK.csv")
 
 
 def test_csv_paths_are_distinct_for_each_symbol():
     sndk = load(MINIMAL, symbol="SNDK", hedge="lighter")
     hype = load(MINIMAL, symbol="HYPE", hedge="lighter")
-    assert sndk.recorder_csv == "logs/minutes-lighter-SNDK.csv"
-    assert hype.recorder_csv == "logs/minutes-lighter-HYPE.csv"
-    assert sndk.trades_csv == "logs/trades-SNDK.csv"
-    assert hype.trades_csv == "logs/trades-HYPE.csv"
+    assert sndk.recorder_csv == anchored("logs", "minutes-lighter-SNDK.csv")
+    assert hype.recorder_csv == anchored("logs", "minutes-lighter-HYPE.csv")
+    assert sndk.trades_csv == anchored("logs", "trades-SNDK.csv")
+    assert hype.trades_csv == anchored("logs", "trades-HYPE.csv")
 
 
 def test_custom_csv_paths_are_scoped_by_symbol():
     cfg = load(MINIMAL + "\nlogging:\n  trades_csv: data/fills.csv\n",
                symbol="HYPE")
-    assert cfg.trades_csv == "data/fills-HYPE.csv"
+    assert cfg.trades_csv == anchored("data", "fills-HYPE.csv")
+
+
+def test_relative_paths_ignore_the_process_cwd():
+    # A config in dir X must write to X/logs even when started from elsewhere:
+    # a forgotten `cd` once scattered CSVs across the filesystem.
+    cfg_dir = tempfile.mkdtemp()
+    path = os.path.join(cfg_dir, "c.yaml")
+    with open(path, "w") as fh:
+        fh.write(MINIMAL)
+    elsewhere = tempfile.mkdtemp()
+    was = os.getcwd()
+    os.chdir(elsewhere)
+    try:
+        cfg = load_config(path, NO_ENV, symbol="SNDK", hedge_venue="lighter")
+    finally:
+        os.chdir(was)
+    assert cfg.recorder_csv == os.path.join(
+        cfg_dir, "logs", "minutes-lighter-SNDK.csv")
+    assert cfg.trades_csv == os.path.join(cfg_dir, "logs", "trades-SNDK.csv")
+
+
+def test_data_paths_expand_vars_and_home():
+    os.environ["ENTROPY_ARB_TEST_LOGS"] = "/var/tmp/entropy-arb-test"
+    try:
+        cfg = load(MINIMAL +
+                   "\nlogging:\n  trades_csv: $ENTROPY_ARB_TEST_LOGS/t.csv\n",
+                   symbol="SNDK", hedge="lighter")
+        assert cfg.trades_csv == "/var/tmp/entropy-arb-test/t-SNDK.csv"
+    finally:
+        del os.environ["ENTROPY_ARB_TEST_LOGS"]
 
 
 def test_recorder_csv_paths_must_be_complete_and_distinct():

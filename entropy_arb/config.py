@@ -50,13 +50,17 @@ class LighterProfile:
 # Endpoint profiles for the two supported zkLighter deployments (these match
 # lighter-python's lighter.endpoint_profiles, duplicated here so --record-only
 # data collection works without the SDK installed).
+# NOTE (local patch, 2026-10-10): anonymous websocket handshakes to the bare
+# /stream endpoint are rejected with HTTP 400; public market data must use
+# ?readonly=true. Authenticated live-trading sessions should revert to the
+# plain /stream URL.
 LIGHTER_PROFILES: Dict[str, LighterProfile] = {
     "lighter": LighterProfile(
         "mainnet", "https://mainnet.zklighter.elliot.ai",
-        "wss://mainnet.zklighter.elliot.ai/stream", 304),
+        "wss://mainnet.zklighter.elliot.ai/stream?readonly=true", 304),
     "lighter-rh": LighterProfile(
         "robinhood", "https://api.rh.lighter.xyz",
-        "wss://api.rh.lighter.xyz/stream", 466324),
+        "wss://api.rh.lighter.xyz/stream?readonly=true", 466324),
 }
 
 
@@ -278,6 +282,22 @@ def _recorder_csv(raw: dict, hedge_venue: str, symbol: str) -> str:
     return _csv_for_symbol(paths[hedge_venue], symbol)
 
 
+def _resolve_data_path(p: str, cfg_dir: str) -> str:
+    """Expand ~/$VARS; resolve relative paths against the config file's dir.
+
+    Data outputs (recorder/trades CSVs) must not depend on the process's cwd —
+    a forgotten `cd` once sent xyz CSVs to /home/hatch/logs. Anchoring on the
+    config file makes the location deterministic no matter where you start.
+
+    This answers WHERE a CSV lands; the helpers above answer WHICH file a
+    (symbol, hedge) pair owns. Both layers apply, in that order.
+    """
+    p = os.path.expandvars(os.path.expanduser(p))
+    if not os.path.isabs(p):
+        p = os.path.normpath(os.path.join(cfg_dir, p))
+    return p
+
+
 # ------------------------------------------------------------------ env layer
 
 def _env_s(name: str) -> Optional[str]:
@@ -295,6 +315,7 @@ def _env_i(name: str) -> Optional[int]:
 def load_config(config_file: str = "config.yaml", env_file: str = ".env", *,
                 symbol: str, hedge_venue: str) -> Config:
     load_dotenv(env_file)
+    cfg_dir = os.path.dirname(os.path.abspath(config_file))
     try:
         with open(config_file) as fh:
             raw = yaml.safe_load(fh) or {}
@@ -400,11 +421,14 @@ def load_config(config_file: str = "config.yaml", env_file: str = ".env", *,
         venue_probe_sec=float(_get(raw, "execution", "venue_probe_sec", 30.0)),
         http_keepalive_sec=float(_get(raw, "execution", "http_keepalive_sec", 10.0)),
         recorder_enabled=bool(_get(raw, "recorder", "enabled", True)),
-        recorder_csv=_recorder_csv(raw, hedge_venue, symbol),
+        # WHICH file: per (symbol, hedge) isolation. WHERE it lands: anchored
+        # on the config file's directory, never on the process's cwd.
+        recorder_csv=_resolve_data_path(
+            _recorder_csv(raw, hedge_venue, symbol), cfg_dir),
         log_level=str(_get(raw, "logging", "level", "INFO")).upper(),
         status_interval_sec=float(_get(raw, "logging", "status_interval_sec", 30.0)),
-        trades_csv=_csv_for_symbol(
-            _get(raw, "logging", "trades_csv", "logs/trades.csv"), symbol),
+        trades_csv=_resolve_data_path(_csv_for_symbol(
+            _get(raw, "logging", "trades_csv", "logs/trades.csv"), symbol), cfg_dir),
         dashboard=bool(_get(raw, "logging", "dashboard", True)),
         log_file=_get(raw, "logging", "file", "logs/engine.log"),
     )
