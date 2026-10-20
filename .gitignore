@@ -1,6 +1,7 @@
 # secrets & local config / 密钥与本地配置
 .env
 config.yaml
+live/
 
 # runtime output / 运行时输出
 logs/
