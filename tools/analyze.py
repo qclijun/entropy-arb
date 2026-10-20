@@ -11,8 +11,8 @@ Reads the hedge-specific CSV written by the built-in recorder and prints:
 以及可直接粘贴进 config.yaml 的 thresholds 建议值。
 
 Usage:
-    python3 tools/analyze.py --csv logs/minutes-lighter.csv
-    python3 tools/analyze.py --csv logs/minutes-tradexyz.csv --fees-bps 1.0
+    python3 tools/analyze.py --csv logs/minutes-lighter-EWY.csv
+    python3 tools/analyze.py --csv logs/minutes-tradexyz-SNDK.csv --fees-bps 1.0
 """
 from __future__ import annotations
 
