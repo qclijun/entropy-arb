@@ -1,0 +1,36 @@
+
+=== logs/minutes-nbis-xyz.csv: 4814 minutes over 88.1h ===
+
+premium of Entropy over hedge, minute close (bps) / Entropy 相对对冲腿的溢价:
+  mean +0.25   std 4.88   median +0.31
+  p5 -7.01   p25 -4.17   p75 +4.08   p95 +7.64
+
+with midline_bps = +0.3 (median) and 1.9 bps round-trip taker fees, minutes each band would have fired / 各档净阈值触发的分钟数:
+   band bps |      SELL entropy |       BUY entropy
+            |  minutes  per day |  minutes  per day
+        1.0 |     1760    479.5 |     1680    457.7
+        1.5 |     1552    422.9 |     1497    407.9
+        2.0 |     1412    384.7 |     1404    382.5
+        3.0 |     1118    304.6 |     1086    295.9
+        4.0 |      739    201.4 |      630    171.7
+        5.0 |      476    129.7 |      399    108.7
+        6.0 |      319     86.9 |      192     52.3
+        8.0 |      147     40.1 |       39     10.6
+       10.0 |       79     21.5 |       16      4.4
+       15.0 |       13      3.5 |        5      1.4
+       20.0 |        8      2.2 |        3      0.8
+
+suggested starting point (fires ~10% of minutes, already net of the
+1.9 bps fees passed via --fees-bps; a full round trip nets
+>= upper+lower bps after fees) /
+建议起点（约 10% 的分钟触发；已扣除 --fees-bps 传入的 1.9 bps 手续费，
+一次完整往返扣费后净赚 >= upper+lower bps）:
+
+thresholds:
+  midline_bps: 0.3
+  upper_bps: 5.0
+  lower_bps: 4.5
+
+Re-run with --hours to focus on recent regimes; premiums drift, so refresh
+these numbers regularly. / 溢价中枢会漂移，请定期重新分析并更新配置。
+
