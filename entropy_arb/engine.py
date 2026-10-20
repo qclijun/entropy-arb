@@ -123,8 +123,11 @@ class Engine:
     async def run(self) -> None:
         # Long keepalive so order-path connections survive quiet spells; the
         # keepalive loop pings inside this window to hold them open.
+        # trust_env=True is load-bearing, do not remove: this deployment's
+        # egress goes through a proxy configured via HTTP(S)_PROXY env vars,
+        # and aiohttp must honour them or every venue connection fails.
         self.session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(
-            keepalive_timeout=75.0, ttl_dns_cache=300))
+            keepalive_timeout=75.0, ttl_dns_cache=300), trust_env=True)
         try:
             await self._run_inner()
         finally:
