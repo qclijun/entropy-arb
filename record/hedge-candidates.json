@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "queried_at_utc": "2026-10-21T00:12:44.688477+00:00",
+  "scope": "Entropy io vs Lighter mainnet, Lighter RH, trade.xyz",
+  "sources": {
+    "snapshot": ".scratch/collector-start/2026-10-21/run-0812/public-api-snapshot",
+    "requests": {
+      "entropy": {
+        "url": "https://api.hyperliquid.xyz/info",
+        "body": {
+          "type": "metaAndAssetCtxs",
+          "dex": "io"
+        },
+        "status": 200,
+        "time_utc": "2026-10-21T00:12:43.901071+00:00",
+        "type": "list",
+        "keys": 2
+      },
+      "xyz": {
+        "url": "https://api.hyperliquid.xyz/info",
+        "body": {
+          "type": "metaAndAssetCtxs",
+          "dex": "xyz"
+        },
+        "status": 200,
+        "time_utc": "2026-10-21T00:12:44.084626+00:00",
+        "type": "list",
+        "keys": 2
+      },
+      "dexs": {
+        "url": "https://api.hyperliquid.xyz/info",
+        "body": {
+          "type": "perpDexs"
+        },
+        "status": 200,
+        "time_utc": "2026-10-21T00:12:43.958610+00:00",
+        "type": "list",
+        "keys": 11
+      },
+      "lighter": {
+        "url": "https://mainnet.zklighter.elliot.ai/api/v1/orderBookDetails",
+        "body": null,
+        "status": 200,
+        "time_utc": "2026-10-21T00:12:44.688477+00:00",
+        "type": "dict",
+        "keys": [
+          "code",
+          "order_book_details",
+          "spot_order_book_details"
+        ]
+      },
+      "lighter-rh": {
+        "url": "https://api.rh.lighter.xyz/api/v1/orderBookDetails",
+        "body": null,
+        "status": 200,
+        "time_utc": "2026-10-21T00:12:44.231731+00:00",
+        "type": "dict",
+        "keys": [
+          "code",
+          "order_book_details",
+          "spot_order_book_details"
+        ]
+      }
+    },
+    "sha256": {
+      "requests.json": "43d69672ccbaf8d156170e2adca16f2054caf7263b5f82a100937cf80b8b9ea6",
+      "lighter.json": "2e971fb4065d57b4edfdc07b12273f2c1fd79cff4b483cc5262156411bf62339",
+      "lighter-rh.json": "03a41144779a024a8f735ed18913e745b25bde5ff3a2982524a32f90137577c4",
+      "xyz.json": "c436a25c1342b3d621d70ebc03a367ba01b54075abb7b9fe8758c5ba0f65c0b0",
+      "dexs.json": "7abb22278044d6869bd519c10944f99349c731a12e78e1e64c084f0466145cfc",
+      "entropy.json": "13101062ceb898704671a05f03ad23f57d9c73b89dda383baa45e48a39612a3f"
+    }
+  },
+  "classification": "alias candidates; excluded from the standard same-symbol collector",
+  "candidates": [
+    {
+      "entropy_symbol": "OAI",
+      "hedge_symbol": "OPENAI",
+      "hedge_venue": "lighter",
+      "hedge_market_id": 192,
+      "collection_enabled": false,
+      "unresolved": [
+        "contract units",
+        "oracle and funding rules",
+        "IPO and no-IPO settlement"
+      ]
+    },
+    {
+      "entropy_symbol": "OAI",
+      "hedge_symbol": "OPENAI",
+      "hedge_venue": "lighter-rh",
+      "hedge_market_id": 42,
+      "collection_enabled": false,
+      "unresolved": [
+        "contract units",
+        "oracle and funding rules",
+        "IPO and no-IPO settlement"
+      ]
+    },
+    {
+      "entropy_symbol": "ANTH",
+      "hedge_symbol": "ANTHROPIC",
+      "hedge_venue": "lighter",
+      "hedge_market_id": 193,
+      "collection_enabled": false,
+      "unresolved": [
+        "contract units",
+        "oracle and funding rules",
+        "IPO and no-IPO settlement"
+      ]
+    },
+    {
+      "entropy_symbol": "ANTH",
+      "hedge_symbol": "ANTHROPIC",
+      "hedge_venue": "lighter-rh",
+      "hedge_market_id": 38,
+      "collection_enabled": false,
+      "unresolved": [
+        "contract units",
+        "oracle and funding rules",
+        "IPO and no-IPO settlement"
+      ]
+    },
+    {
+      "entropy_symbol": "TCNT",
+      "hedge_symbol": "TENCENT",
+      "hedge_venue": "lighter",
+      "hedge_market_id": 201,
+      "collection_enabled": false,
+      "unresolved": [
+        "HKD/USD conversion",
+        "contract multiplier",
+        "oracle rules"
+      ]
+    }
+  ],
+  "excluded_delisted": [
+    "io:SBE",
+    "io:H100",
+    "io:MOONSHOT"
+  ],
+  "no_same_symbol_hedge_in_scope": [
+    "IONQ",
+    "GPRO"
+  ],
+  "rule_sources": [
+    "https://docs.entropy.io/market-types/pre-ipo-perpetuals",
+    "https://docs.lighter.xyz/trading/real-world-assets-rwas/pre-ipo-markets",
+    "https://docs.entropy.io/asset-directory/equity-assets"
+  ]
+}

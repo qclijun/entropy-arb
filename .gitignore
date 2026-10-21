@@ -6,7 +6,10 @@ live/
 # runtime output / 运行时输出
 logs/
 *.log
-.scratch/scan-results/
+*.pid
+*.lock
+# agent 临时工作区：API 快照、原始 CSV、HANDOFF/审查记录，不进仓库
+.scratch/
 
 # python
 __pycache__/

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Entropy Daily Analysis"
+  short_description: "Daily spread analysis and offline replay"
+  default_prompt: "Use $entropy-daily-analysis to analyze the project CSVs and report evidence-backed arbitrage candidates in Chinese."

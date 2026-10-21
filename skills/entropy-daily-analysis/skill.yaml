@@ -1,0 +1,5 @@
+# Legacy consumer metadata; Claude/Codex use SKILL.md as the source of instructions.
+name: local_entropy_daily_analysis
+title: Entropy daily spread analysis
+description: Analyze entropy-arb CSV spreads and offline opportunities. Read SKILL.md for the current workflow.
+include_in_prompt: true
